@@ -1,7 +1,4 @@
 #include <stdbool.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <stdlib.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include "esp_heap_caps.h"
@@ -78,11 +75,11 @@ typedef struct {
 } hsv_threshold_t;
 
 hsv_threshold_t thresholds[5] = {
-      { 0,    10,   100,  255,  100,  255 },
-      { 160,  180,  100,  255,  100,  255 },
-      { 40,   85,   100,  255,  100,  255 },
-      { 100,  140,  100,  255,  100,  255 },
-      { 140,  160,  100,  255,  100,  255 }
+      { 0,    10,   100,  255,  100,  255 }, // red1
+      { 160,  180,  100,  255,  100,  255 }, // red2
+      { 40,   85,   100,  255,  100,  255 }, // green
+      { 100,  140,  100,  255,  100,  255 }, // blue
+      { 140,  160,  100,  255,  100,  255 } // purple
 };
 
 static esp_err_t camera_init() {
@@ -180,13 +177,55 @@ void app_main() {
                   }
             }
 
+            float red_per, blue_per, green_per, purple_per;
+            red_per = (count_r * 100.0f) / total_pixels;
+            green_per = (count_g * 100.0f) / total_pixels;
+            blue_per = (count_b * 100.0f) / total_pixels;
+            purple_per = (count_p * 100.0f) / total_pixels;
+
             ESP_LOGI(TAG, "Results\n");
-            ESP_LOGI(TAG, "Red: %.2f%%\n", (count_r * 100.0) / total_pixels);
-            ESP_LOGI(TAG, "Blue: %.2f%%\n", (count_g * 100.0) / total_pixels);
-            ESP_LOGI(TAG, "Green: %.2f%%\n", (count_b * 100.0) / total_pixels);
-            ESP_LOGI(TAG, "Purple: %.2f%%\n", (count_p * 100.0) / total_pixels);
+            ESP_LOGI(TAG, "Red: %.2f%%\n", red_per);
+            ESP_LOGI(TAG, "Blue: %.2f%%\n", blue_per);
+            ESP_LOGI(TAG, "Green: %.2f%%\n", green_per);
+            ESP_LOGI(TAG, "Purple: %.2f%%\n", purple_per);
+
+            char *final_res;
+
+            if (red_per > blue_per) {
+                  if (red_per > green_per) {
+                        if (red_per > purple_per) {
+                              final_res = "RED";
+                        } else {
+                              final_res = "PURPLE";
+                        }
+                  } else {
+                        if (green_per > purple_per) {
+                              final_res = "GREEN";
+                        } else {
+                              final_res = "BLUE";
+                        }
+                  }
+            } else {
+                  if (blue_per > green_per) {
+                        if (blue_per > purple_per) {
+                              final_res = "BLUE";
+                        } else {
+                              final_res = "PURPLE";
+                        }
+                  } else {
+                        if (green_per > purple_per) {
+                              final_res = "GREEN";
+                        } else {
+                              final_res = "RED";
+                        }
+                  }
+            }
+
+            ESP_LOGI(TAG, "RPISEND: %s", final_res); // output final response via Serial for RPI to interpret
       }
 
       heap_caps_free(rgb_buf);
       esp_camera_fb_return(fb);
+
+
 }
