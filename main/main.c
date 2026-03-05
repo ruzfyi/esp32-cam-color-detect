@@ -74,12 +74,13 @@ typedef struct {
       uint8_t v_min, v_max;
 } hsv_threshold_t;
 
+// h_min, h_max, s_min, s_max, v_min, v_max
 hsv_threshold_t thresholds[5] = {
-      { 0,    10,   100,  255,  100,  255 }, // red1
-      { 160,  180,  100,  255,  100,  255 }, // red2
-      { 40,   85,   100,  255,  100,  255 }, // green
-      { 100,  140,  100,  255,  100,  255 }, // blue
-      { 140,  160,  100,  255,  100,  255 } // purple
+      { 0,    10,   100,  255,   50,  255 }, // red1
+      { 170,  180,  100,  255,   50,  255 }, // red2
+      { 40,   80,   100,  255,  100,  255 }, // green
+      { 100,  120,  100,  255,  100,  255 }, // blue
+      { 115,  165,  100,  255,  100,  255 } // purple
 };
 
 static esp_err_t camera_init() {
@@ -107,7 +108,7 @@ static void rgb888_to_hsv(uint8_t r, uint8_t g, uint8_t b, uint8_t *h, uint8_t *
 
       *s = (uint16_t)255 * delta / max;
 
-      uint32_t hue;
+      int32_t hue;
       if (max == r) hue = 0 + 60 * (g - b) / delta;
       else if (max == g) hue = 120 + 60 * (b - r) / delta;
       else hue = 240 + 60 * (r - g) / delta;
@@ -122,7 +123,14 @@ void app_main() {
             return;
       }
 
-      vTaskDelay(500 / portTICK_PERIOD_MS);
+      // warm up the camera
+      for (int i = 0; i < 2; i++) {
+            camera_fb_t * fb = esp_camera_fb_get();
+            if (fb) {
+                  esp_camera_fb_return(fb);
+                  vTaskDelay(200);
+            }
+      }
 
       camera_fb_t *fb = esp_camera_fb_get();
       if (!fb) return;
@@ -219,6 +227,10 @@ void app_main() {
                               final_res = "RED";
                         }
                   }
+            }
+
+            if (purple_per > 0.2f) {
+                  final_res = "PURPLE";
             }
 
             ESP_LOGI(TAG, "RPISEND: %s", final_res); // output final response via Serial for RPI to interpret
